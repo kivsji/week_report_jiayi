@@ -2,15 +2,16 @@
 import React, { useState, useMemo } from 'react';
 import { DashboardData } from '../types';
 import { MetricsCharts } from './MetricsCharts';
-import { CheckCircle, AlertCircle, TrendingUp, Building2, ClipboardList, Calendar } from 'lucide-react';
+import { CheckCircle, AlertCircle, TrendingUp, Building2, ClipboardList, Calendar, ArrowLeft } from 'lucide-react';
 import { calculateWeeklyMetrics } from '../services/excelService';
 
 interface DashboardProps {
   data: DashboardData;
   setData: React.Dispatch<React.SetStateAction<DashboardData | null>>;
+  onBack: () => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ data, setData }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ data, setData, onBack }) => {
   const [selectedDateStr, setSelectedDateStr] = useState<string>(new Date().toISOString().split('T')[0]);
   
   // State for manual inputs
@@ -36,6 +37,23 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, setData }) => {
     ...metrics,
     weekly: weeklyMetrics
   };
+
+  /**
+   * 计算所选日期所在周的起止范围，并格式化为 “YYYY年-MM月-DD日 到 YYYY年-MM月-DD日”
+   */
+  const weekRangeLabel = useMemo(() => {
+    const d = new Date(selectedDateStr);
+    if (isNaN(d.getTime())) return '';
+    const day = d.getDay();
+    const diffToMonday = (day + 6) % 7;
+    const start = new Date(d);
+    start.setDate(d.getDate() - diffToMonday);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    const fmt = (dt: Date) => `${dt.getFullYear()}年-${pad(dt.getMonth()+1)}月-${pad(dt.getDate())}日`;
+    return `${fmt(start)} 到 ${fmt(end)}`;
+  }, [selectedDateStr]);
 
   const handleWorkChange = (val: string) => {
     setWorkInput(val);
@@ -85,34 +103,76 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, setData }) => {
     setEditingCountKey(null);
   };
 
+  /**
+   * 计算“今日已拜访”数据（取所选日期当天），包含总数与 A/C/商业 分布
+   */
+  const todayMetrics = useMemo(() => {
+    const target = new Date(selectedDateStr);
+    if (isNaN(target.getTime())) {
+      return { total: 0, breakdown: { "A栋": 0, "C栋": 0, "商业": 0 } } as const;
+    }
+    const isSameDay = (a: Date, b: Date) => (
+      a.getFullYear() === b.getFullYear() &&
+      a.getMonth() === b.getMonth() &&
+      a.getDate() === b.getDate()
+    );
+    const parseRowDate = (dateStr: string): Date | null => {
+      try {
+        const cleaned = dateStr?.toString().replace(/：/g, ':').replace(/\./g, '-').trim();
+        const d = new Date(cleaned);
+        return isNaN(d.getTime()) ? null : d;
+      } catch {
+        return null;
+      }
+    };
+    let total = 0;
+    const counts: Record<'A栋'|'C栋'|'商业', number> = { 'A栋': 0, 'C栋': 0, '商业': 0 };
+    rows.forEach(row => {
+      const d = parseRowDate(row['拜访时间']);
+      if (d && isSameDay(d, target)) {
+        let bldg = '其他';
+        const rawBldg = (row['楼栋'] || '').toString().toUpperCase();
+        if (rawBldg.includes('A')) bldg = 'A栋';
+        else if (rawBldg.includes('C')) bldg = 'C栋';
+        else if (rawBldg.includes('商')) bldg = '商业';
+        total++;
+        if (bldg in counts) counts[bldg as 'A栋'|'C栋'|'商业']++;
+      }
+    });
+    return { total, breakdown: counts } as const;
+  }, [rows, selectedDateStr]);
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 pb-20">
+      <div className="flex items-center justify-between mb-4">
+        <button className="px-3 py-2 rounded-lg hover:bg-gray-100 text-sm inline-flex items-center gap-1" onClick={onBack}><ArrowLeft className="h-4 w-4"/>返回</button>
+        <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
+          <Calendar className="h-5 w-5 text-gray-400" />
+          <input 
+            type="date" 
+            value={selectedDateStr}
+            onChange={(e) => setSelectedDateStr(e.target.value)}
+            className="text-sm border-none focus:ring-0 text-gray-700 font-medium bg-transparent"
+          />
+        </div>
+      </div>
       
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-gray-200 pb-5 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">物业拜访数据看板</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-bold text-gray-900">物业拜访数据看板</h1>
+          </div>
           <p className="text-gray-500 mt-1">本周工作汇报与数据汇总</p>
         </div>
-        <div className="flex flex-col items-end">
-           <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
-              <Calendar className="h-5 w-5 text-gray-400" />
-              <input 
-                type="date" 
-                value={selectedDateStr}
-                onChange={(e) => setSelectedDateStr(e.target.value)}
-                className="text-sm border-none focus:ring-0 text-gray-700 font-medium bg-transparent"
-              />
-           </div>
-           <div className="mt-1">
-             <span className="text-xs text-gray-400 mr-2">统计周期:</span>
-             <span className="text-lg font-bold text-indigo-600">{displayMetrics.weekly.weekLabel}</span>
-           </div>
+        <div className="flex items-center">
+          <span className="text-xs text-gray-400 mr-2">统计周期:</span>
+          <span className="text-lg font-bold text-indigo-600">{weekRangeLabel}</span>
         </div>
       </div>
 
-      {/* Row 1: Visit Metrics (Req 1, 2, 3) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Row 1: Visit Metrics (含今日与本周统计) */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         
         {/* Metric 1: Total Sample Base */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
@@ -131,7 +191,35 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, setData }) => {
           </div>
         </div>
 
-        {/* Metric 2: Weekly Visits */}
+        {/* Metric 2: Today Visits */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 relative overflow-hidden">
+          <div className="absolute right-0 top-0 h-full w-1 bg-orange-500"></div>
+          <div>
+             <div className="flex items-center justify-between mb-2">
+              <h3 className="text-gray-500 font-medium text-sm uppercase tracking-wider">今日已拜访</h3>
+            </div>
+            <div className="flex items-baseline space-x-2">
+              <span className="text-4xl font-bold text-gray-900">{todayMetrics.total}</span>
+              <span className="text-sm text-gray-500">户</span>
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-3 gap-2 pt-4 border-t border-gray-50">
+             <div className="text-center">
+               <span className="block text-xs text-gray-400">A栋</span>
+               <span className="font-semibold text-gray-800">{todayMetrics.breakdown['A栋']}</span>
+             </div>
+             <div className="text-center border-l border-gray-100">
+               <span className="block text-xs text-gray-400">C栋</span>
+               <span className="font-semibold text-gray-800">{todayMetrics.breakdown['C栋']}</span>
+             </div>
+             <div className="text-center border-l border-gray-100">
+               <span className="block text-xs text-gray-400">商业</span>
+               <span className="font-semibold text-gray-800">{todayMetrics.breakdown['商业']}</span>
+             </div>
+          </div>
+        </div>
+
+        {/* Metric 3: Weekly Visits */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 relative overflow-hidden">
           <div className="absolute right-0 top-0 h-full w-1 bg-green-500"></div>
           <div>

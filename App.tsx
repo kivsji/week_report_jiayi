@@ -95,7 +95,7 @@ const App: React.FC = () => {
            </div>
         </div>
       ) : mode === 'dashboard' && dashboardData ? (
-        <Dashboard data={dashboardData} setData={setDashboardData} />
+        <Dashboard data={dashboardData} setData={setDashboardData} onBack={() => { setDashboardData(null); setMode('upload'); }} />
       ) : (
         <CustomDashboard onBack={() => setMode(dashboardData ? 'dashboard' : 'upload')} />
       )}

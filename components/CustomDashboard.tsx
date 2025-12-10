@@ -1,9 +1,11 @@
 import React, { useMemo, useState } from 'react';
-import { ChartConfig, CustomDashboardConfig } from '../types';
+import { ChartConfig, CustomDashboardConfig, SectionConfig } from '../types';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { ChartRenderer } from './ChartRenderer';
 import { Plus, Pencil, Trash2, Upload, Download, ArrowLeft, ArrowUp, ArrowDown } from 'lucide-react';
 import { ChartEditor } from './ChartEditor';
+import { ConfigurableSection } from './ConfigurableSection';
+import { SectionEditor } from './SectionEditor';
 
 interface CustomDashboardProps {
   onBack: () => void;
@@ -16,10 +18,12 @@ interface CustomDashboardProps {
 export const CustomDashboard: React.FC<CustomDashboardProps> = ({ onBack }) => {
   const [config, setConfig] = useLocalStorage<CustomDashboardConfig>('customDashboardConfig', {
     header: { title: '自定义报表', subtitle: '可视化展示', date: '', format: 'YYYY-MM-DD', showDate: true },
-    charts: []
+    charts: [],
+    sections: []
   });
 
   const [editing, setEditing] = useState<ChartConfig | null>(null);
+  const [editingSection, setEditingSection] = useState<SectionConfig | null>(null);
 
   const updateHeader = (updates: Partial<CustomDashboardConfig['header']>) => {
     setConfig({ ...config, header: { ...config.header, ...updates } });
@@ -67,6 +71,7 @@ export const CustomDashboard: React.FC<CustomDashboardProps> = ({ onBack }) => {
       const text = await file.text();
       const data = JSON.parse(text);
       if (!data || !Array.isArray(data.charts) || !data.header) throw new Error('结构不合法');
+      if (!Array.isArray(data.sections)) data.sections = [];
       setConfig(data);
     } catch (e) {
       alert('导入失败：JSON 格式或结构不正确');
@@ -74,7 +79,28 @@ export const CustomDashboard: React.FC<CustomDashboardProps> = ({ onBack }) => {
   };
 
   const clearAll = () => {
-    setConfig({ header: { title: '', subtitle: '', date: '', format: 'YYYY-MM-DD', showDate: true }, charts: [] });
+    setConfig({ header: { title: '', subtitle: '', date: '', format: 'YYYY-MM-DD', showDate: true }, charts: [], sections: [] });
+  };
+
+  // Section operations
+  const addSection = () => setEditingSection({ id: '', title: '', hint: '', tags: [], items: [] });
+  const editSection = (id: string) => setEditingSection(config.sections?.find(s => s.id === id) || null);
+  const deleteSection = (id: string) => setConfig({ ...config, sections: (config.sections || []).filter(s => s.id !== id) });
+  const moveSection = (id: string, dir: 'up'|'down') => {
+    const sections = config.sections || [];
+    const idx = sections.findIndex(s => s.id === id);
+    if (idx < 0) return;
+    const swapWith = dir === 'up' ? idx - 1 : idx + 1;
+    if (swapWith < 0 || swapWith >= sections.length) return;
+    const next = [...sections]; [next[idx], next[swapWith]] = [next[swapWith], next[idx]];
+    setConfig({ ...config, sections: next });
+  };
+  const saveEditingSection = (section: SectionConfig) => {
+    const sections = [...(config.sections || [])];
+    const idx = sections.findIndex(s => s.id === section.id);
+    if (idx >= 0) sections[idx] = section; else sections.push(section);
+    setConfig({ ...config, sections });
+    setEditingSection(null);
   };
 
   return (
@@ -149,8 +175,35 @@ export const CustomDashboard: React.FC<CustomDashboardProps> = ({ onBack }) => {
           ))}
         </div>
 
+        {/* 模块管理区 */}
+        <div className="mt-8">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-semibold text-gray-800">模块管理</h2>
+            <button className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-600 text-white" onClick={addSection}><Plus size={16}/>新增模块</button>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {(config.sections || []).map(section => (
+              <div key={section.id} className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-semibold text-gray-700">{section.title || '未命名模块'}</div>
+                  <div className="flex items-center gap-1">
+                    <button className="p-2 hover:bg-gray-100 rounded-lg" title="上移" onClick={() => moveSection(section.id, 'up')}><ArrowUp size={16}/></button>
+                    <button className="p-2 hover:bg-gray-100 rounded-lg" title="下移" onClick={() => moveSection(section.id, 'down')}><ArrowDown size={16}/></button>
+                    <button className="p-2 hover:bg-gray-100 rounded-lg" title="编辑" onClick={() => editSection(section.id)}><Pencil size={16}/></button>
+                    <button className="p-2 hover:bg-red-50 text-red-600 rounded-lg" title="删除" onClick={() => deleteSection(section.id)}><Trash2 size={16}/></button>
+                  </div>
+                </div>
+                <ConfigurableSection config={section} />
+              </div>
+            ))}
+          </div>
+        </div>
+
         {editing && (
           <ChartEditor initial={editing} onSave={saveEditing} onCancel={() => setEditing(null)} />
+        )}
+        {editingSection && (
+          <SectionEditor initial={editingSection} onSave={saveEditingSection} onCancel={() => setEditingSection(null)} />
         )}
       </div>
     </div>

@@ -138,4 +138,26 @@ export interface CustomHeaderConfig {
 export interface CustomDashboardConfig {
   header: CustomHeaderConfig;
   charts: ChartConfig[];
+  sections?: SectionConfig[];
+}
+
+export interface SectionTag {
+  key: string;
+  label: string;
+  color: string;
+}
+
+export interface SectionItem {
+  id: string;
+  content: string;
+  status?: string;
+  meta?: { [k: string]: string };
+}
+
+export interface SectionConfig {
+  id: string;
+  title: string;
+  hint?: string;
+  tags: SectionTag[];
+  items: SectionItem[];
 }

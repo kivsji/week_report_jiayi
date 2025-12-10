@@ -1,8 +1,8 @@
 
 import React from 'react';
 import { 
-  PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, LabelList 
+  ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, LabelList, Tooltip 
 } from 'recharts';
 import { MetricSummary } from '../types';
 
@@ -28,15 +28,10 @@ export const MetricsCharts: React.FC<MetricsChartsProps> = ({ metrics }) => {
     { name: '商业', count: metrics.cumulative.breakdown['商业'] },
   ];
 
-  // Area Data
-  const areaData = metrics.areaStats.map((stat) => ({
-    name: stat.category,
-    value: stat.area,
-    pct: stat.percentage
-  }));
+  // 移除客情面积占比饼图（周报仅保留拜访分布图表）
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
       {/* Weekly Visits Chart */}
       <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
         <h3 className="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">本周拜访分布 ({metrics.weekly.weekLabel})</h3>
@@ -73,42 +68,7 @@ export const MetricsCharts: React.FC<MetricsChartsProps> = ({ metrics }) => {
         </div>
       </div>
 
-      {/* Area Pie Chart */}
-      <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
-        <h3 className="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">客情面积占比</h3>
-        <div className="h-56">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={areaData}
-                cx="50%"
-                cy="50%"
-                innerRadius={50}
-                outerRadius={70}
-                paddingAngle={2}
-                dataKey="value"
-                label={({ payload, percent }) => {
-                  const pct = payload?.pct ?? Math.round((percent || 0) * 100);
-                  return `${pct}%`;
-                }}
-                labelLine={false}
-              >
-                {areaData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip 
-                 formatter={(value: number, name: string, props: any) => [
-                   `${value.toLocaleString()} ㎡ (${props.payload.pct}%)`, 
-                   name
-                 ]}
-                 contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-              />
-              <Legend verticalAlign="bottom" height={36} iconSize={8} wrapperStyle={{fontSize: '11px'}}/>
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+      
     </div>
   );
 };
