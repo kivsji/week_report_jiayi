@@ -11,6 +11,7 @@ const App: React.FC = () => {
   const [mode, setMode] = useState<'upload' | 'dashboard' | 'custom'>('upload');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [totalHouseholds, setTotalHouseholds] = useState<number>(456);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -24,7 +25,7 @@ const App: React.FC = () => {
       if (rows.length === 0) {
         throw new Error("表格为空或格式不正确");
       }
-      const metrics = calculateMetrics(rows);
+      const metrics = calculateMetrics(rows, totalHouseholds);
       
       setDashboardData({
         metrics,
@@ -49,6 +50,16 @@ const App: React.FC = () => {
               </div>
               <h1 className="text-2xl font-bold text-gray-900">物业拜访数据看板</h1>
               <p className="text-gray-500">请上传本周拜访记录 Excel 表格以生成汇报看板</p>
+
+              <div className="text-left bg-gray-50 p-3 rounded-lg border border-gray-200">
+                <label className="block text-xs font-medium text-gray-700 mb-1">总样本量 (户)</label>
+                <input 
+                  type="number" 
+                  value={totalHouseholds}
+                  onChange={(e) => setTotalHouseholds(Number(e.target.value))}
+                  className="w-full text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
               
               <div className="relative group">
                 <label 

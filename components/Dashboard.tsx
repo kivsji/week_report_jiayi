@@ -29,8 +29,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, setData, onBack }) =
   const weeklyMetrics = useMemo(() => {
     const date = new Date(selectedDateStr);
     if (isNaN(date.getTime())) return metrics.weekly;
-    return calculateWeeklyMetrics(rows, date);
-  }, [rows, selectedDateStr, metrics.weekly]);
+    return calculateWeeklyMetrics(rows, date, metrics.totalTarget);
+  }, [rows, selectedDateStr, metrics.weekly, metrics.totalTarget]);
 
   // Merge static metrics with dynamic weekly metrics
   const displayMetrics = {

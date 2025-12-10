@@ -2,7 +2,6 @@
 import * as XLSX from 'xlsx';
 import { ExcelRow, MetricSummary, FeedbackStats, AreaStats, WeeklyStats } from '../types';
 
-const TOTAL_HOUSEHOLDS = 456;
 const TOTAL_AREA = 136130.51;
 
 // Helper to clean date strings like "2025.11.20 14:30" or "2025.12.2 10：00"
@@ -81,7 +80,7 @@ export const parseExcel = async (file: File): Promise<ExcelRow[]> => {
   });
 };
 
-export const calculateWeeklyMetrics = (rows: ExcelRow[], targetDate: Date): WeeklyStats => {
+export const calculateWeeklyMetrics = (rows: ExcelRow[], targetDate: Date, totalHouseholds: number): WeeklyStats => {
   const currentWeekNum = getWeekNumber(targetDate);
   const currentYear = targetDate.getFullYear();
 
@@ -113,12 +112,12 @@ export const calculateWeeklyMetrics = (rows: ExcelRow[], targetDate: Date): Week
     }
   });
 
-  weekly.percentage = parseFloat(((weekly.total / TOTAL_HOUSEHOLDS) * 100).toFixed(1));
+  weekly.percentage = parseFloat(((weekly.total / totalHouseholds) * 100).toFixed(1));
 
   return weekly;
 };
 
-export const calculateMetrics = (rows: ExcelRow[]): MetricSummary => {
+export const calculateMetrics = (rows: ExcelRow[], totalHouseholds: number = 456): MetricSummary => {
   // 1. Determine "Current Week" based on the latest date in the file for initial load
   let latestDate: Date | null = null;
   const rowsWithDate = rows.map(r => {
@@ -132,14 +131,14 @@ export const calculateMetrics = (rows: ExcelRow[]): MetricSummary => {
 
   // Initialize Data Structures
   const metrics: MetricSummary = {
-    totalTarget: TOTAL_HOUSEHOLDS,
+    totalTarget: totalHouseholds,
     totalAreaTarget: TOTAL_AREA,
     cumulative: {
       total: 0,
       percentage: 0,
       breakdown: { "A栋": 0, "C栋": 0, "商业": 0 }
     },
-    weekly: calculateWeeklyMetrics(rows, initialDate),
+    weekly: calculateWeeklyMetrics(rows, initialDate, totalHouseholds),
     areaStats: [],
     feedbackStats: {
       total: 0,
@@ -197,7 +196,7 @@ export const calculateMetrics = (rows: ExcelRow[]): MetricSummary => {
   });
 
   // Calculate Percentages
-  metrics.cumulative.percentage = parseFloat(((metrics.cumulative.total / TOTAL_HOUSEHOLDS) * 100).toFixed(1));
+  metrics.cumulative.percentage = parseFloat(((metrics.cumulative.total / totalHouseholds) * 100).toFixed(1));
 
   // Format Area Stats
   metrics.areaStats = Object.entries(areaMap).map(([cat, area]) => ({
