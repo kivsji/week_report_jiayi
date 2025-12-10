@@ -1,0 +1,5 @@
+{
+  "name": "Property Management Visit Dashboard",
+  "description": "A dashboard for analyzing property management visit logs from Excel, visualizing metrics, and generating weekly reports.",
+  "requestFramePermissions": []
+}
