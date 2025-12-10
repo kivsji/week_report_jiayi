@@ -88,3 +88,54 @@ export interface DashboardData {
   feedbackSummary?: string;
   geminiAnalysis?: string;
 }
+
+// 图表类型与自定义报表数据结构定义
+export type ChartType = 'bar' | 'pie' | 'line';
+
+export interface PieDataItem {
+  name: string;
+  value: number;
+}
+
+export interface BarDataItem {
+  category: string;
+  value: number;
+}
+
+export interface LinePoint {
+  x: string | number;
+  y: number;
+}
+
+export interface LineSeries {
+  name: string;
+  points: LinePoint[];
+}
+
+export interface ChartOptions {
+  colors?: string[];
+  showLegend?: boolean;
+  showLabel?: boolean;
+  showPercent?: boolean;
+}
+
+export interface ChartConfig {
+  id: string;
+  type: ChartType;
+  title: string;
+  data: PieDataItem[] | BarDataItem[] | LineSeries[];
+  options?: ChartOptions;
+}
+
+export interface CustomHeaderConfig {
+  title: string;
+  subtitle?: string;
+  date?: string;
+  format?: string; // 如 YYYY-MM-DD 或 YYYY年MM月DD日
+  showDate?: boolean;
+}
+
+export interface CustomDashboardConfig {
+  header: CustomHeaderConfig;
+  charts: ChartConfig[];
+}

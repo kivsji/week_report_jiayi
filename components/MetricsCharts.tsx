@@ -87,6 +87,11 @@ export const MetricsCharts: React.FC<MetricsChartsProps> = ({ metrics }) => {
                 outerRadius={70}
                 paddingAngle={2}
                 dataKey="value"
+                label={({ payload, percent }) => {
+                  const pct = payload?.pct ?? Math.round((percent || 0) * 100);
+                  return `${pct}%`;
+                }}
+                labelLine={false}
               >
                 {areaData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />

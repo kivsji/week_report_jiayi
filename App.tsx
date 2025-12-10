@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import * as XLSX from 'xlsx';
 import { Upload, FileSpreadsheet } from 'lucide-react';
 import { Dashboard } from './components/Dashboard';
+import { CustomDashboard } from './components/CustomDashboard';
 import { parseExcel, calculateMetrics } from './services/excelService';
 import { DashboardData } from './types';
 
 const App: React.FC = () => {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [mode, setMode] = useState<'upload' | 'dashboard' | 'custom'>('upload');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,6 +30,7 @@ const App: React.FC = () => {
         metrics,
         rows
       });
+      setMode('dashboard');
     } catch (err) {
       setError("解析Excel失败，请确保文件格式正确 (Excel)。");
       console.error(err);
@@ -38,7 +41,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 font-sans">
-      {!dashboardData ? (
+      {mode === 'upload' ? (
         <div className="min-h-screen flex flex-col items-center justify-center p-4">
            <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 space-y-6 text-center">
               <div className="mx-auto h-16 w-16 bg-indigo-100 rounded-full flex items-center justify-center">
@@ -85,10 +88,16 @@ const App: React.FC = () => {
               <div className="text-left text-xs text-gray-400 mt-4 space-y-1">
                 <p>表格必须包含: 序号, 拜访时间, 楼栋, 面积, 业主态度..., 反馈内容... 等标准列。</p>
               </div>
+
+              <div className="pt-2">
+                <button className="w-full px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200" onClick={() => setMode('custom')}>或进入自定义报表页面</button>
+              </div>
            </div>
         </div>
-      ) : (
+      ) : mode === 'dashboard' && dashboardData ? (
         <Dashboard data={dashboardData} setData={setDashboardData} />
+      ) : (
+        <CustomDashboard onBack={() => setMode(dashboardData ? 'dashboard' : 'upload')} />
       )}
     </div>
   );
