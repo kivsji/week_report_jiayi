@@ -2,8 +2,8 @@
 import React, { useState, useMemo } from 'react';
 import { DashboardData } from '../types';
 import { MetricsCharts } from './MetricsCharts';
-import { CheckCircle, AlertCircle, TrendingUp, Building2, ClipboardList, Calendar, ArrowLeft } from 'lucide-react';
-import { calculateWeeklyMetrics } from '../services/excelService';
+import { CheckCircle, AlertCircle, TrendingUp, Building2, ClipboardList, Calendar, ArrowLeft, ThumbsUp } from 'lucide-react';
+import { calculateWeeklyMetrics, calculateAttitudeStats } from '../services/excelService';
 
 interface DashboardProps {
   data: DashboardData;
@@ -31,6 +31,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, setData, onBack }) =
     if (isNaN(date.getTime())) return metrics.weekly;
     return calculateWeeklyMetrics(rows, date, metrics.totalTarget);
   }, [rows, selectedDateStr, metrics.weekly, metrics.totalTarget]);
+  
+  const attitudeStats = useMemo(() => calculateAttitudeStats(rows), [rows]);
 
   // Merge static metrics with dynamic weekly metrics
   const displayMetrics = {
@@ -171,7 +173,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, setData, onBack }) =
         </div>
       </div>
 
-      {/* Row 1: Visit Metrics (含今日与本周统计) */}
+      {/* Row 1: Visit Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         
         {/* Metric 1: Total Sample Base */}
@@ -191,35 +193,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, setData, onBack }) =
           </div>
         </div>
 
-        {/* Metric 2: Today Visits */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 relative overflow-hidden">
-          <div className="absolute right-0 top-0 h-full w-1 bg-orange-500"></div>
-          <div>
-             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-gray-500 font-medium text-sm uppercase tracking-wider">今日已拜访</h3>
-            </div>
-            <div className="flex items-baseline space-x-2">
-              <span className="text-4xl font-bold text-gray-900">{todayMetrics.total}</span>
-              <span className="text-sm text-gray-500">户</span>
-            </div>
-          </div>
-          <div className="mt-4 grid grid-cols-3 gap-2 pt-4 border-t border-gray-50">
-             <div className="text-center">
-               <span className="block text-xs text-gray-400">A栋</span>
-               <span className="font-semibold text-gray-800">{todayMetrics.breakdown['A栋']}</span>
-             </div>
-             <div className="text-center border-l border-gray-100">
-               <span className="block text-xs text-gray-400">C栋</span>
-               <span className="font-semibold text-gray-800">{todayMetrics.breakdown['C栋']}</span>
-             </div>
-             <div className="text-center border-l border-gray-100">
-               <span className="block text-xs text-gray-400">商业</span>
-               <span className="font-semibold text-gray-800">{todayMetrics.breakdown['商业']}</span>
-             </div>
-          </div>
-        </div>
-
-        {/* Metric 3: Weekly Visits */}
+        {/* Metric 2: Weekly Visits */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 relative overflow-hidden">
           <div className="absolute right-0 top-0 h-full w-1 bg-green-500"></div>
           <div>
@@ -257,8 +231,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, setData, onBack }) =
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 relative overflow-hidden">
            <div className="absolute right-0 top-0 h-full w-1 bg-indigo-500"></div>
            <div>
-             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-gray-500 font-medium text-sm uppercase tracking-wider">累计已拜访</h3>
+              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-3">
+                <h3 className="text-gray-500 font-medium text-sm uppercase tracking-wider">累计已拜访</h3>
+              </div>
               <CheckCircle className="h-5 w-5 text-indigo-500" />
             </div>
             <div className="flex items-baseline space-x-2">
@@ -286,44 +262,50 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, setData, onBack }) =
              </span>
           </div>
         </div>
+
+        {/* Metric 4: Attitude Stats */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 relative overflow-hidden">
+          <div className="absolute right-0 top-0 h-full w-1 bg-pink-500"></div>
+          <div>
+             <div className="flex items-center justify-between mb-2">
+              <h3 className="text-gray-500 font-medium text-sm uppercase tracking-wider">客情统计</h3>
+              <ThumbsUp className="h-5 w-5 text-pink-500" />
+            </div>
+            <div className="flex items-baseline space-x-2">
+               <span className="text-4xl font-bold text-gray-900">{displayMetrics.cumulative.total}</span>
+               <span className="text-sm text-gray-500">户</span>
+             </div>
+          </div>
+          <div className="mt-4 space-y-3 pt-4 border-t border-gray-50">
+             <div className="flex items-center justify-between">
+               <span className="text-xs text-gray-500">支持</span>
+               <div className="text-right">
+                 <span className="font-semibold text-gray-800 mr-1">{attitudeStats.supportCount}</span>
+                 <span className="text-xs text-gray-400">({attitudeStats.supportPct}%)</span>
+               </div>
+             </div>
+             <div className="w-full bg-gray-100 rounded-full h-1.5">
+                <div className="bg-green-500 h-1.5 rounded-full" style={{ width: `${attitudeStats.supportPct}%` }}></div>
+             </div>
+             
+             <div className="flex items-center justify-between pt-1">
+               <span className="text-xs text-gray-500">不支持</span>
+               <div className="text-right">
+                 <span className="font-semibold text-gray-800 mr-1">{attitudeStats.notSupportCount}</span>
+                 <span className="text-xs text-gray-400">({attitudeStats.notSupportPct}%)</span>
+               </div>
+             </div>
+             <div className="w-full bg-gray-100 rounded-full h-1.5">
+                <div className="bg-orange-500 h-1.5 rounded-full" style={{ width: `${attitudeStats.notSupportPct}%` }}></div>
+             </div>
+          </div>
+        </div>
       </div>
 
       {/* Row 2: Charts (Visualization) */}
       <MetricsCharts metrics={displayMetrics} />
 
-      {/* Row 3: Detailed Area Analysis (Req 3 Table) */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-         <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-           <h3 className="font-bold text-gray-900">各类客情面积统计详情</h3>
-           <span className="text-xs text-gray-500">总面积样本: {displayMetrics.totalAreaTarget.toLocaleString()} ㎡</span>
-         </div>
-         <div className="overflow-x-auto">
-           <table className="min-w-full divide-y divide-gray-200">
-             <thead className="bg-gray-50">
-               <tr>
-                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">客情类别 (业主态度)</th>
-                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">统计面积 (㎡)</th>
-                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">占比总面积</th>
-                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">可视化</th>
-               </tr>
-             </thead>
-             <tbody className="bg-white divide-y divide-gray-200">
-               {displayMetrics.areaStats.map((stat, idx) => (
-                 <tr key={idx}>
-                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{stat.category}</td>
-                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{stat.area.toLocaleString()}</td>
-                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{stat.percentage}%</td>
-                   <td className="px-6 py-4 whitespace-nowrap w-1/3">
-                      <div className="w-full bg-gray-200 rounded-full h-2.5">
-                        <div className="bg-indigo-600 h-2.5 rounded-full" style={{ width: `${stat.percentage}%` }}></div>
-                      </div>
-                   </td>
-                 </tr>
-               ))}
-             </tbody>
-           </table>
-         </div>
-      </div>
+      
 
       {/* Row 4: Manual Inputs Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

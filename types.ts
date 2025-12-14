@@ -53,6 +53,11 @@ export interface WeeklyStats {
     "C栋": number;
     "商业": number;
   };
+  areaBreakdown: {
+    "A栋": number;
+    "C栋": number;
+    "商业": number;
+  };
   weekLabel: string;
 }
 
@@ -65,6 +70,11 @@ export interface MetricSummary {
     total: number;
     percentage: number; // vs 456
     breakdown: {
+      "A栋": number;
+      "C栋": number;
+      "商业": number;
+    };
+    areaBreakdown: {
       "A栋": number;
       "C栋": number;
       "商业": number;
@@ -87,6 +97,14 @@ export interface DashboardData {
   weeklyWorkSummary?: string;
   feedbackSummary?: string;
   geminiAnalysis?: string;
+}
+
+export interface AttitudeStats {
+  supportCount: number;
+  notSupportCount: number;
+  totalCount: number;
+  supportPct: number;
+  notSupportPct: number;
 }
 
 // 图表类型与自定义报表数据结构定义

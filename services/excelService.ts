@@ -1,6 +1,6 @@
 
 import * as XLSX from 'xlsx';
-import { ExcelRow, MetricSummary, FeedbackStats, AreaStats, WeeklyStats } from '../types';
+import { ExcelRow, MetricSummary, FeedbackStats, AreaStats, WeeklyStats, AttitudeStats } from '../types';
 
 const TOTAL_AREA = 136130.51;
 
@@ -88,6 +88,7 @@ export const calculateWeeklyMetrics = (rows: ExcelRow[], targetDate: Date, total
     total: 0,
     percentage: 0,
     breakdown: { "A栋": 0, "C栋": 0, "商业": 0 },
+    areaBreakdown: { "A栋": 0, "C栋": 0, "商业": 0 },
     weekLabel: `${currentYear}年第${currentWeekNum}周`
   };
 
@@ -104,17 +105,56 @@ export const calculateWeeklyMetrics = (rows: ExcelRow[], targetDate: Date, total
         else if (rawBldg.includes("C")) bldg = "C栋";
         else if (rawBldg.includes("商")) bldg = "商业";
 
+        const area = parseFloat(String(row["面积"] || 0));
+
         weekly.total++;
         if (weekly.breakdown[bldg as keyof typeof weekly.breakdown] !== undefined) {
           weekly.breakdown[bldg as keyof typeof weekly.breakdown]++;
+          weekly.areaBreakdown[bldg as keyof typeof weekly.areaBreakdown] += area;
         }
       }
     }
   });
 
+  // Round area stats to 2 decimals
+  weekly.areaBreakdown["A栋"] = parseFloat(weekly.areaBreakdown["A栋"].toFixed(2));
+  weekly.areaBreakdown["C栋"] = parseFloat(weekly.areaBreakdown["C栋"].toFixed(2));
+  weekly.areaBreakdown["商业"] = parseFloat(weekly.areaBreakdown["商业"].toFixed(2));
+
   weekly.percentage = parseFloat(((weekly.total / totalHouseholds) * 100).toFixed(1));
 
   return weekly;
+};
+
+export const calculateAttitudeStats = (rows: ExcelRow[]): AttitudeStats => {
+  const total = rows.length;
+  let support = 0;
+  let notSupport = 0;
+  const normalize = (s: string): string => {
+    return (s || '').toString()
+      .replace(/[（）\(\)]/g, '')
+      .replace(/\s+/g, '')
+      .trim();
+  };
+  for (const r of rows) {
+    const raw = r["业主态度群诉态度"] || '';
+    const n = normalize(raw);
+    if (!n) continue;
+    if (n.includes('不支持')) {
+      notSupport++;
+    } else if (n.includes('支持')) {
+      support++;
+    }
+  }
+  const supportPct = total ? parseFloat(((support / total) * 100).toFixed(1)) : 0;
+  const notSupportPct = total ? parseFloat(((notSupport / total) * 100).toFixed(1)) : 0;
+  return {
+    supportCount: support,
+    notSupportCount: notSupport,
+    totalCount: total,
+    supportPct,
+    notSupportPct
+  };
 };
 
 export const calculateMetrics = (rows: ExcelRow[], totalHouseholds: number = 456): MetricSummary => {
@@ -136,7 +176,8 @@ export const calculateMetrics = (rows: ExcelRow[], totalHouseholds: number = 456
     cumulative: {
       total: 0,
       percentage: 0,
-      breakdown: { "A栋": 0, "C栋": 0, "商业": 0 }
+      breakdown: { "A栋": 0, "C栋": 0, "商业": 0 },
+      areaBreakdown: { "A栋": 0, "C栋": 0, "商业": 0 }
     },
     weekly: calculateWeeklyMetrics(rows, initialDate, totalHouseholds),
     areaStats: [],
@@ -148,8 +189,6 @@ export const calculateMetrics = (rows: ExcelRow[], totalHouseholds: number = 456
     }
   };
 
-  const areaMap: Record<string, number> = {};
-
   rowsWithDate.forEach(row => {
     // --- Building Logic ---
     let bldg = "其他";
@@ -158,16 +197,14 @@ export const calculateMetrics = (rows: ExcelRow[], totalHouseholds: number = 456
     else if (rawBldg.includes("C")) bldg = "C栋";
     else if (rawBldg.includes("商")) bldg = "商业";
 
+    const area = parseFloat(String(row["面积"] || 0));
+
     // --- Cumulative Stats ---
     metrics.cumulative.total++;
     if (metrics.cumulative.breakdown[bldg as keyof typeof metrics.cumulative.breakdown] !== undefined) {
       metrics.cumulative.breakdown[bldg as keyof typeof metrics.cumulative.breakdown]++;
+      metrics.cumulative.areaBreakdown[bldg as keyof typeof metrics.cumulative.areaBreakdown] += area;
     }
-
-    // --- Area Stats ---
-    const attitude = row["业主态度群诉态度"] || "未记录";
-    if (!areaMap[attitude]) areaMap[attitude] = 0;
-    areaMap[attitude] += row["面积"] || 0;
 
     // --- Feedback Stats ---
     const content = row["反馈内容（含表扬）"];
@@ -195,15 +232,13 @@ export const calculateMetrics = (rows: ExcelRow[], totalHouseholds: number = 456
     }
   });
 
+  // Round area stats to 2 decimals for cumulative
+  metrics.cumulative.areaBreakdown["A栋"] = parseFloat(metrics.cumulative.areaBreakdown["A栋"].toFixed(2));
+  metrics.cumulative.areaBreakdown["C栋"] = parseFloat(metrics.cumulative.areaBreakdown["C栋"].toFixed(2));
+  metrics.cumulative.areaBreakdown["商业"] = parseFloat(metrics.cumulative.areaBreakdown["商业"].toFixed(2));
+
   // Calculate Percentages
   metrics.cumulative.percentage = parseFloat(((metrics.cumulative.total / totalHouseholds) * 100).toFixed(1));
-
-  // Format Area Stats
-  metrics.areaStats = Object.entries(areaMap).map(([cat, area]) => ({
-    category: cat,
-    area: parseFloat(area.toFixed(2)),
-    percentage: parseFloat(((area / TOTAL_AREA) * 100).toFixed(1))
-  })).sort((a, b) => b.area - a.area);
 
   return metrics;
 };
