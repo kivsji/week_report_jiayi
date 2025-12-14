@@ -94,7 +94,9 @@ export interface MetricSummary {
 export interface DashboardData {
   metrics: MetricSummary;
   rows: ExcelRow[];
-  weeklyWorkSummary?: string;
+  weeklyWorkSummary?: string; // Deprecated, keeping for backward compatibility
+  workCompleted?: string;
+  workPending?: string;
   feedbackSummary?: string;
   geminiAnalysis?: string;
 }

@@ -17,7 +17,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, setData, onBack }) =
   // State for manual inputs
   // Initialize from data if exists, otherwise empty
   const [feedbackInput, setFeedbackInput] = useState(data.feedbackSummary || '');
-  const [workInput, setWorkInput] = useState(data.weeklyWorkSummary || '');
+  const [workCompletedInput, setWorkCompletedInput] = useState(data.workCompleted || data.weeklyWorkSummary || '');
+  const [workPendingInput, setWorkPendingInput] = useState(data.workPending || '');
 
   // Inline edit state for feedback counts
   const [editingCountKey, setEditingCountKey] = useState<null | 'total' | 'completed' | 'pending'>(null);
@@ -57,9 +58,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, setData, onBack }) =
     return `${fmt(start)} 到 ${fmt(end)}`;
   }, [selectedDateStr]);
 
-  const handleWorkChange = (val: string) => {
-    setWorkInput(val);
-    setData(prev => prev ? ({ ...prev, weeklyWorkSummary: val }) : null);
+  const handleWorkCompletedChange = (val: string) => {
+    setWorkCompletedInput(val);
+    setData(prev => prev ? ({ ...prev, workCompleted: val }) : null);
+  };
+
+  const handleWorkPendingChange = (val: string) => {
+    setWorkPendingInput(val);
+    setData(prev => prev ? ({ ...prev, workPending: val }) : null);
   };
 
   const handleFeedbackChange = (val: string) => {
@@ -311,7 +317,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, setData, onBack }) =
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
         {/* Feedback / Major Issues (Manual Input) */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col h-full">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col h-full lg:col-span-2 xl:col-span-1">
           <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-orange-50">
              <h3 className="font-bold text-orange-900 flex items-center gap-2">
                <AlertCircle className="h-5 w-5" />
@@ -415,7 +421,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, setData, onBack }) =
         </div>
 
         {/* Work Summary (Manual Input) */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col h-full">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col h-full lg:col-span-2 xl:col-span-1">
            <div className="px-6 py-4 border-b border-gray-100 bg-indigo-50">
              <h3 className="font-bold text-indigo-900 flex items-center gap-2">
                <ClipboardList className="h-5 w-5" />
@@ -423,16 +429,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, setData, onBack }) =
              </h3>
            </div>
            
-           <div className="flex-1 p-6 flex flex-col">
-             <p className="text-xs text-gray-500 mb-2">
-               请输入本周提升方案专项、已完成工作及待跟进情况。
-             </p>
-             <textarea
-               className="flex-1 w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none text-sm min-h-[300px]"
-               placeholder="1. 提升方案A - 已完成&#10;2. 专项工作B - 待跟进..."
-               value={workInput}
-               onChange={(e) => handleWorkChange(e.target.value)}
-             ></textarea>
+           <div className="flex-1 p-6 flex flex-col md:flex-row gap-6">
+             <div className="flex-1 flex flex-col">
+               <h4 className="text-sm font-semibold text-gray-700 mb-2">已完成工作</h4>
+               <textarea
+                 className="flex-1 w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none text-sm min-h-[300px]"
+                 placeholder="请输入本周已完成的重点工作..."
+                 value={workCompletedInput}
+                 onChange={(e) => handleWorkCompletedChange(e.target.value)}
+               ></textarea>
+             </div>
+             
+             <div className="flex-1 flex flex-col">
+               <h4 className="text-sm font-semibold text-gray-700 mb-2">待跟进工作</h4>
+               <textarea
+                 className="flex-1 w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none text-sm min-h-[300px]"
+                 placeholder="请输入待跟进的专项工作或提升方案..."
+                 value={workPendingInput}
+                 onChange={(e) => handleWorkPendingChange(e.target.value)}
+               ></textarea>
+             </div>
            </div>
         </div>
       </div>
